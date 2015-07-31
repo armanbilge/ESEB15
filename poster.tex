@@ -1,0 +1,229 @@
+\documentclass{tikzposter}
+\tikzposterlatexaffectionproofoff
+
+\usepackage{hyperref}
+\usepackage{doi}
+\usepackage{qrcode}
+
+\makeatletter
+\renewcommand\TP@maketitle{%
+   \begin{minipage}{0.8\linewidth}
+        \color{titlefgcolor}
+        {\bfseries \Huge \sc \@title \par}
+        \vspace*{1em}
+        {\huge \@author \par}
+        \vspace*{1em}
+        {\LARGE \@institute}
+    \end{minipage}
+    \hfill
+    \begin{minipage}{0.2\linewidth}
+       \centering
+       \begin{tikzpicture}
+           \begin{scope}[scale=0.09, y={(0,-1)}]
+               \input{uoa.tex}
+           \end{scope}
+           \begin{scope}[scale=0.00001, y={(0,-1)}, shift={(7,65)}]
+               \input{eth.tex}
+           \end{scope}
+       \end{tikzpicture}
+    \end{minipage}
+}
+\makeatother
+
+\title{Sifting Through Tangled Trees: Bayesian Reconstruction of Cophylogenies}
+\author{\underline{Arman Bilge}, Timothy Vaughan, and Alexei J. Drummond}
+\institute{\Large email: \href{mailto:abil933@aucklanduni.ac.nz}{\texttt{abil933@aucklanduni.ac.nz}}}
+
+\defineblockstyle{MySlide}{
+    titlewidthscale=1, bodywidthscale=1, titleleft,
+    titleoffsetx=0pt, titleoffsety=0pt, bodyoffsetx=0pt, bodyoffsety=0pt,
+    bodyverticalshift=0pt, roundedcorners=0, linewidth=0pt, titleinnersep=1cm,
+    bodyinnersep=1cm
+}{
+    \ifBlockHasTitle%
+        \draw[draw=none, left color=blocktitlebgcolor, right color=blocktitlebgcolor]
+           (blocktitle.south west) rectangle (blocktitle.north east);
+    \fi%
+    \draw[draw=none, fill=blockbodybgcolor] %
+        (blockbody.north west) [rounded corners=30] -- (blockbody.south west) --
+        (blockbody.south east) [rounded corners=0]-- (blockbody.north east) -- cycle;
+}
+
+\usetheme{Autumn}
+\usecolorstyle{Russia}
+\definecolor{uoanavy}{RGB}{0,60,127}
+\colorlet{titlebgcolor}{uoanavy}
+\colorlet{blocktitlebgcolor}{uoanavy}
+\useblockstyle{MySlide}
+\renewcommand{\familydefault}{\sfdefault}
+\usepackage{sfmath}
+
+\usepackage{multicol}
+\usepackage{enumitem}
+\setlist[itemize]{label=$\triangleright$, labelsep=12pt}
+
+% Plots
+\usetikzlibrary{arrows.meta}
+\usepackage{pgfplots}
+\usepackage{pgfplotstable}
+\pgfplotsset{width=32cm,
+             compat=newest,
+             jitter/.style={
+                 x filter/.code={\pgfmathparse{\pgfmathresult+rnd*#1-#1/2}}
+             },
+             jitter/.default=0,
+             select coords between index/.style 2 args={
+                 x filter/.code={
+                     \ifnum\coordindex<#1\def\pgfmathresult{}\fi
+                     \ifnum\coordindex>#2\def\pgfmathresult{}\fi
+                 }
+             }
+ }
+
+\makeatletter
+\pgfarrowsdeclare{center*}{center*}
+{
+  \pgfarrowsleftextend{+-.5\pgflinewidth}
+  \pgfutil@tempdima=0.4pt%
+  \advance\pgfutil@tempdima by.2\pgflinewidth%
+  \pgfarrowsrightextend{4.5\pgfutil@tempdima}
+}
+{
+  \pgfutil@tempdima=0.4pt%
+  \advance\pgfutil@tempdima by.2\pgflinewidth%
+  \pgfsetdash{}{+0pt}
+  \pgfpathcircle{\pgfqpoint{4.5\pgfutil@tempdima}{0bp}}{4.5\pgfutil@tempdima}
+  \pgfusepathqfillstroke
+}
+\pgfarrowsdeclare{centero}{centero}
+{
+  \pgfarrowsleftextend{+-.5\pgflinewidth}
+  \pgfutil@tempdima=0.4pt%
+  \advance\pgfutil@tempdima by.2\pgflinewidth%
+  \pgfarrowsrightextend{4.5\pgfutil@tempdima}
+}
+{
+  \pgfutil@tempdima=0.4pt%
+  \advance\pgfutil@tempdima by.2\pgflinewidth%
+  \pgfsetdash{}{+0pt}
+  \pgfpathcircle{\pgfqpoint{4.5\pgfutil@tempdima}{0bp}}{4.5\pgfutil@tempdima}
+  \pgfusepathqstroke
+}
+\makeatother
+
+\usepackage{mathtools}
+\newcommand{\dd}{\, \mathrm{d}}
+\renewcommand{\vec}[1]{\ensuremath{\boldsymbol{\mathbf{#1}}}}
+\newcommand{\mat}[1]{\ensuremath{\boldsymbol{\mathbf{#1}}}}
+\newcommand{\op}[1]{\ensuremath{\boldsymbol{\mathbf{#1}}}}
+\newcommand{\norm}[1]{\ensuremath{\mathcal{N}\left(#1\right)}}
+
+\usepackage{algorithm}
+\usepackage{algpseudocode}
+\algrenewcomment[2][.41\linewidth]{\leavevmode\hfill\makebox[#1][l]{\(\triangleright\)~#2}}
+
+\usepackage[none]{hyphenat}
+\frenchspacing
+
+\begin{document}
+
+    \maketitle
+
+    \begin{columns}
+
+        \column{0.5}
+
+        \block{Motivation}{
+            \flushleft
+            \begin{itemize}
+                \item Horizontal gene transfer etc.
+            \end{itemize}
+        }
+
+        \block{The Cophylogeny Model}{
+            \centering
+            \begin{tikzpicture}
+                \draw[blue] (0,0) -- (10,10);
+                \draw[blue] (4,0) -- (2,2);
+                \draw[blue] (8,0) -- (4,4);
+                \draw[blue] (12,0) -- (14,2);
+                \draw[blue] (16,0) -- (8,8);
+                \draw[red] (1,0) -- (11,10);
+                \draw[white,-center*] (9,8) -- (9,8);
+                \draw[red,-centero] (17,0) -- (9,8);
+                \draw[white,-center*] (15,2) -- (15,2);
+                \draw[red,-centero] (13,0) -- (15,2);
+                \draw[red] (7,3) -- (14,3);
+                \draw[red,arrows={Latex[scale=1]-}] (10,3) -- (14,3);
+                \draw[red] (10,0) -- (7,3);
+                \draw[white,-center*] (5,4) -- (5,4);
+                \draw[red,-centero] (9,0) -- (5,4);
+                \draw[white,arrows=-center*] (3,2) -- (3,2);
+                \draw[red,arrows=-centero] (4,1) -- (3,2);
+                \node[red, rotate=135] at (4,1) {\Huge\textsf{\textbf{x}}};
+                \draw[red] (18,0) -- (17,1);
+                \draw[red,center*-] (16,1) -- (17,1);
+            \end{tikzpicture}
+
+            \innerblock{Cospeciation}{A host and all of its guests speciate simultaneously}
+            \innerblock{Duplication}{A guest speciates and remains on the same host at rate $\lambda$}
+            \innerblock{Host-Switch}{A guest speciates and selects a new host at rate $\tau$}
+            \innerblock{Loss}{A guest dies at rate $\mu$}
+            \innerblock{Sampling}{A guest is sampled with probability $\rho$}
+        }
+
+        \block{The Particle Markov chain Monte Carlo Algorithm}{
+
+            \begin{enumerate}
+
+                \item Approximate the probability of the guest tree and reconciliation
+                \begin{enumerate}
+                    \item Create $N$ particles, each with an population of guests
+                \end{enumerate}
+            \end{enumerate}
+
+        }
+
+        \column{0.5}
+
+        \block{Future Work}{
+            \begin{itemize}
+                \item Relax deterministic host tree
+            \end{itemize}
+        }
+
+        \block{Acknowledgements}{
+            \flushleft
+            \begin{itemize}
+                \item Members of Computational Evolution Groups at University of Auckland and ETH Z\"urich
+            \end{itemize}
+        }
+
+        \block{References}{
+            \flushleft
+
+        }
+
+        \block{}{
+            \begin{multicols*}{2}
+
+                \flushleft
+
+                \qrcode[height=5cm]{http://dx.doi.org/10.5281/zenodo.22305}
+                Download this poster.
+
+                \vspace{25pt} \texttt{\doi{10.5281/zenodo.22305}}
+
+                \columnbreak
+
+                \qrcode[height=5cm]{http://git.io/vOLj1}
+                Fork the source code.
+
+                \vspace{25pt} \url{http://git.io/vOLj1}
+
+            \end{multicols*}
+        }
+
+    \end{columns}
+
+\end{document}
